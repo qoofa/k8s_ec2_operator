@@ -1,0 +1,9 @@
+apiVersion: compute.minhaj.blog/v1
+kind: Ec2instance
+metadata:
+  labels:
+    app.kubernetes.io/name: ec2-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: ec2instance-sample
+spec:
+  # TODO(user): Add fields here
