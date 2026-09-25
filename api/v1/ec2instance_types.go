@@ -21,9 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // Ec2instanceSpec defines the desired state of Ec2instance
 type Ec2instanceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -31,9 +28,9 @@ type Ec2instanceSpec struct {
 	// The following markers will use OpenAPI v3 schema to validate the value
 	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
 
-	// foo is an example field of Ec2instance. Edit ec2instance_types.go to remove/update
-	// +optional
-	Foo *string `json:"foo,omitempty"`
+	AmiID string `json:"amiID,omitempty"`
+	SshKey string `json:"sshKey,omitempty"`
+  	Type string `json:"type,omitempty"`
 }
 
 // Ec2instanceStatus defines the observed state of Ec2instance.
@@ -56,7 +53,11 @@ type Ec2instanceStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// Conditions []metav1.Condition `json:"conditions,omitempty"`
+	
+	Phase string `json:"phase,omitempty"`
+	InstanceID string `json:"instanceID,omitempty"`
+	PublicIP string `json:"publicIp,omitempty"`
 }
 
 // +kubebuilder:object:root=true
