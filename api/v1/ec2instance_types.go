@@ -28,9 +28,18 @@ type Ec2instanceSpec struct {
 	// The following markers will use OpenAPI v3 schema to validate the value
 	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
 
-	AmiID string `json:"amiID,omitempty"`
-	SshKey string `json:"sshKey,omitempty"`
-  	Type string `json:"type,omitempty"`
+	AmiID             string            `json:"amiID"`
+	SshKey            string            `json:"sshKey"`
+	InstanceType      string            `json:"instanceType"`
+	Subnet            string            `json:"subnet"`
+	Tags              map[string]string `json:"tags,omitempty"`
+	Storage           StorageConfig     `json:"storage"`
+	AdditionalStorage []StorageConfig   `json:"additionalStorage,omitempty"`
+}
+
+type StorageConfig struct {
+	Size int    `json:"size"`
+	Type string `json:"type"`
 }
 
 // Ec2instanceStatus defines the observed state of Ec2instance.
@@ -54,10 +63,10 @@ type Ec2instanceStatus struct {
 	// +listMapKey=type
 	// +optional
 	// Conditions []metav1.Condition `json:"conditions,omitempty"`
-	
-	Phase string `json:"phase,omitempty"`
+
+	Phase      string `json:"phase,omitempty"`
 	InstanceID string `json:"instanceID,omitempty"`
-	PublicIP string `json:"publicIp,omitempty"`
+	PublicIP   string `json:"publicIp,omitempty"`
 }
 
 // +kubebuilder:object:root=true
