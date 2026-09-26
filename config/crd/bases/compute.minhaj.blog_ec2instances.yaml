@@ -39,12 +39,46 @@ spec:
           spec:
             description: spec defines the desired state of Ec2instance
             properties:
+              additionalStorage:
+                items:
+                  properties:
+                    size:
+                      type: integer
+                    type:
+                      type: string
+                  required:
+                  - size
+                  - type
+                  type: object
+                type: array
               amiID:
+                type: string
+              instanceType:
                 type: string
               sshKey:
                 type: string
-              type:
+              storage:
+                properties:
+                  size:
+                    type: integer
+                  type:
+                    type: string
+                required:
+                - size
+                - type
+                type: object
+              subnet:
                 type: string
+              tags:
+                additionalProperties:
+                  type: string
+                type: object
+            required:
+            - amiID
+            - instanceType
+            - sshKey
+            - storage
+            - subnet
             type: object
           status:
             description: status defines the observed state of Ec2instance
