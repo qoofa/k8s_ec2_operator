@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,9 +48,16 @@ type Ec2instanceReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.25.0/pkg/reconcile
 func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	l := logf.FromContext(ctx)
 
-	// TODO(user): your logic here
+	ec2Instance := &computev1.Ec2instance{}
+
+	r.Get(ctx, req.NamespacedName, ec2Instance)
+
+	l.Info("Reconciling ec2 instance", ec2Instance.Name)
+	fmt.Println("I got request from namespace", req.NamespacedName, " from ", ec2Instance.Name)
+	fmt.Print("Spec is :", ec2Instance.Spec)
+	l.Info("Reconcile ec2 name ", ec2Instance.Name)
 
 	return ctrl.Result{}, nil
 }

@@ -33,6 +33,7 @@ type Ec2instanceSpec struct {
 	InstanceType      string            `json:"instanceType"`
 	Subnet            string            `json:"subnet"`
 	Tags              map[string]string `json:"tags,omitempty"`
+	InstanceName      string            `json:"instanceName"`
 	Storage           StorageConfig     `json:"storage"`
 	AdditionalStorage []StorageConfig   `json:"additionalStorage,omitempty"`
 }
