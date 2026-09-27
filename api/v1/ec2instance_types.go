@@ -28,19 +28,29 @@ type Ec2instanceSpec struct {
 	// The following markers will use OpenAPI v3 schema to validate the value
 	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
 
-	AmiID             string            `json:"amiID"`
-	SshKey            string            `json:"sshKey"`
 	InstanceType      string            `json:"instanceType"`
-	Subnet            string            `json:"subnet"`
+	AMIId             string            `json:"amiId"`
+	Region            string            `json:"region"`
+	AvailabilityZone  string            `json:"availabilityZone,omitempty"`
+	KeyPair           string            `json:"keyPair,omitempty"`
+	SecurityGroups    []string          `json:"securityGroups,omitempty"`
+	Subnet            string            `json:"subnet,omitempty"`
+	UserData          string            `json:"userData,omitempty"`
 	Tags              map[string]string `json:"tags,omitempty"`
-	InstanceName      string            `json:"instanceName"`
-	Storage           StorageConfig     `json:"storage"`
-	AdditionalStorage []StorageConfig   `json:"additionalStorage,omitempty"`
+	Storage           StorageConfig     `json:"storage,omitempty"`
+	AssociatePublicIP bool              `json:"associatePublicIp,omitempty"`
 }
 
 type StorageConfig struct {
-	Size int    `json:"size"`
-	Type string `json:"type"`
+	RootVolume        VolumeConfig   `json:"rootVolume,omitempty"`
+	AdditionalVolumes []VolumeConfig `json:"additionalVolumes,omitempty"`
+}
+
+type VolumeConfig struct {
+	Size       int32  `json:"size"`
+	Type       string `json:"type,omitempty"`
+	DeviceName string `json:"deviceName,omitempty"`
+	Encrypted  bool   `json:"encrypted,omitempty"`
 }
 
 // Ec2instanceStatus defines the observed state of Ec2instance.
@@ -54,8 +64,8 @@ type Ec2instanceStatus struct {
 	// conditions represent the current state of the Ec2instance resource.
 	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
 
-	Phase      string `json:"phase,omitempty"`
 	InstanceID string `json:"instanceID,omitempty"`
+	State      string `json:"state,omitempty"`
 	PublicIP   string `json:"publicIp,omitempty"`
 }
 
