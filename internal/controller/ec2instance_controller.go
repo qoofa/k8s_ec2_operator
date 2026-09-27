@@ -54,11 +54,13 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	r.Get(ctx, req.NamespacedName, ec2Instance)
 
-	l.Info("Reconciling ec2 instance", ec2Instance.Name)
+	l.Info("Reconciling ec2 instance", "name", ec2Instance.Name)
+
 	fmt.Println("I got request from namespace", req.NamespacedName, " from ", ec2Instance.Name)
 	fmt.Print("Spec is :", ec2Instance.Spec)
-	l.Info("Reconcile ec2 name ", ec2Instance.Name)
 
+	l.Info("Finished reconciling ec2 instance", "name", ec2Instance.Name)
+	
 	return ctrl.Result{}, nil
 }
 
