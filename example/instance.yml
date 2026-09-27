@@ -1,0 +1,16 @@
+apiVersion: compute.minhaj.blog/v1
+kind: Ec2instance
+metadata:
+    name: "ec2-instance-test-runner" 
+spec:
+    amiID: "ami-08d70e59c07c61a3a"
+    sshKey: "my-ssh"
+    instanceName: "jolochip"
+    instanceType: "t2.micro"
+    subnet: "subnet-38293233"
+    tags:
+        environment: "shd"
+        owner: "opex"
+    storage:
+        size: 8
+        type: "gp2"
