@@ -64,9 +64,13 @@ type Ec2instanceStatus struct {
 	// conditions represent the current state of the Ec2instance resource.
 	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
 
-	InstanceID string `json:"instanceID,omitempty"`
-	State      string `json:"state,omitempty"`
-	PublicIP   string `json:"publicIp,omitempty"`
+	InstanceID string       `json:"instanceID,omitempty"`
+	State      string       `json:"state,omitempty"`
+	PublicIP   string       `json:"publicIp,omitempty"`
+	PrivateIP  string       `json:"privateIp,omitempty"`
+	PublicDNS  string       `json:"publicDNS,omitempty"`
+	PrivateDNS string       `json:"privateDNS,omitempty"`
+	LaunchTime *metav1.Time `json:"launchTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
