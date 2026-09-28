@@ -24,8 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	computev1 "github.com/qoofa/ec2-operator/api/v1"
 )
 
@@ -62,6 +64,22 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
+	}
+
+	if !ec2Instance.DeletionTimestamp.IsZero() {
+		l.Info("DeletionTimestamp found, intiating deletion")
+		_, err := deleteInstance(ctx, ec2Instance)
+		if err != nil {
+			l.Error(err, "Failed to delete EC2 instance")
+			return ctrl.Result{Requeue: true}, err
+		}
+
+		controllerutil.RemoveFinalizer(ec2Instance, "ec2instance.compute.minhaj.blog")
+		if err = r.Update(ctx, ec2); err != nil {
+			l.Error(err, "Failed to remove finalizer")
+			return ctrl.Result{Requeue: true}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	if ec2Instance.Status.InstanceID != "" {
