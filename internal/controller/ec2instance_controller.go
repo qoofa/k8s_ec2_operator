@@ -64,6 +64,11 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
+	if ec2Instance.Status.InstanceID != "" {
+		l.Info("=== Requested Instace exists already so skipping ", "instanceId", ec2Instance.Status.InstanceID, " ===")
+		return ctrl.Result{}, nil
+	}
+
 	l.Info("Creating new instance")
 
 	l.Info("=== Adding Finalizer ===")
