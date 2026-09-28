@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	computev1 "github.com/qoofa/ec2-operator/api/v1"
 )
 
@@ -75,7 +74,7 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 
 		controllerutil.RemoveFinalizer(ec2Instance, "ec2instance.compute.minhaj.blog")
-		if err = r.Update(ctx, ec2); err != nil {
+		if err = r.Update(ctx, ec2Instance); err != nil {
 			l.Error(err, "Failed to remove finalizer")
 			return ctrl.Result{Requeue: true}, err
 		}
