@@ -113,9 +113,9 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	ec2Instance.Status.InstanceID = newInstance.InstanceID
 	ec2Instance.Status.State = newInstance.State
-	ec2Instance.Status.PublicDNS = newInstance.PublicIP
+	ec2Instance.Status.PublicIP = newInstance.PublicIP
 	ec2Instance.Status.PrivateIP = newInstance.PrivateIP
-	ec2Instance.Status.PublicDNS = newInstance.PrivateDNS
+	ec2Instance.Status.PublicDNS = newInstance.PublicDNS
 	ec2Instance.Status.PrivateDNS = newInstance.PrivateDNS
 
 	err = r.Status().Update(ctx, ec2Instance)
