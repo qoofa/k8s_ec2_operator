@@ -106,6 +106,15 @@ spec:
             properties:
               instanceID:
                 type: string
+              launchTime:
+                format: date-time
+                type: string
+              privateDNS:
+                type: string
+              privateIp:
+                type: string
+              publicDNS:
+                type: string
               publicIp:
                 type: string
               state:
