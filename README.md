@@ -1,135 +1,150 @@
 # ec2-operator
-// TODO(user): Add simple overview of use/purpose
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+A Kubernetes operator that manages AWS EC2 instances as native resources.
+Write an `Ec2instance` manifest, apply it, and the operator launches the instance, waits until it is running, and puts its details in the resource status. Delete the resource and the operator terminates the instance.
 
-## Getting Started
+Built with [Kubebuilder](https://book.kubebuilder.io) and the [AWS SDK for Go v2](https://github.com/aws/aws-sdk-go-v2).
+
+## How it works
+
+```
+kubectl apply ──▶ Ec2instance CR ──▶ Reconciler ──▶ EC2 RunInstances
+                                         │              │
+                                         │◀── wait until running
+                                         ▼
+                                 status: instanceID, state, IPs, DNS
+
+kubectl delete ─▶ finalizer ─▶ EC2 TerminateInstances ─▶ wait ─▶ finalizer removed
+```
+
+1. **Create**: when a new `Ec2instance` appears, the controller adds the `ec2instance.compute.minhaj.blog` finalizer, calls `RunInstances`, and waits up to 3 minutes for the instance to reach `running`.
+2. **Status**: it then writes the instance ID, state, public and private IPs, and DNS names to `.status`.
+3. **Idempotency**: if `.status.instanceID` is already set, the controller skips creation.
+4. **Delete**: when the resource is deleted, the controller terminates the instance, waits up to 5 minutes for termination, and removes the finalizer.
+
+## API
+
+`apiVersion: compute.minhaj.blog/v1`, `kind: Ec2instance`
+
+### Spec
+
+| Field               | Type              | Required | Description                         |
+|---------------------|-------------------|----------|-------------------------------------|
+| `instanceType`      | string            | yes      | EC2 instance type, e.g. `t2.micro`  |
+| `amiId`             | string            | yes      | AMI to launch                       |
+| `region`            | string            | yes      | AWS region, e.g. `us-east-1`        |
+| `keyPair`           | string            | no       | EC2 key pair name for SSH           |
+| `subnet`            | string            | no       | Subnet ID to launch into            |
+| `availabilityZone`  | string            | no       | Availability zone                   |
+| `securityGroups`    | []string          | no       | Security group IDs                  |
+| `userData`          | string            | no       | Instance user data                  |
+| `tags`              | map[string]string | no       | Instance tags                       |
+| `storage`           | object            | no       | Root and additional volume config   |
+| `associatePublicIp` | bool              | no       | Associate a public IP               |
+
+> Only `instanceType`, `amiId`, `region`, `keyPair`, and `subnet` are wired to the AWS call at the moment.
+
+### Status
+
+| Field        | Description               |
+|--------------|---------------------------|
+| `instanceID` | EC2 instance ID           |
+| `state`      | Instance state            |
+| `publicIp`   | Public IPv4 address       |
+| `privateIp`  | Private IPv4 address      |
+| `publicDNS`  | Public DNS name           |
+| `privateDNS` | Private DNS name          |
+
+### Example
+
+```yaml
+apiVersion: compute.minhaj.blog/v1
+kind: Ec2instance
+metadata:
+  name: ec2instance-sample
+spec:
+  instanceType: t2.micro
+  amiId: ami-08d70e59c07c61a3a
+  region: us-east-1
+  keyPair: my-keypair
+  subnet: subnet-0123456789abcdef0
+  tags:
+    environment: dev
+```
+
+## Getting started
 
 ### Prerequisites
-- go version v1.24.6+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+- Go 1.24+
+- Docker
+- kubectl
+- A Kubernetes cluster. Local configs are included for [kind](https://kind.sigs.k8s.io) (`.kind/`) and [k3d](https://k3d.io) (`.k3d/`)
+- AWS credentials with EC2 permissions
+
+### AWS credentials
+
+The operator reads static credentials from the environment:
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/ec2-operator:tag
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
-
-**Install the CRDs into the cluster:**
+### Run locally
 
 ```sh
+# start a local cluster (pick one)
+kind create cluster --config .kind/kind-multi-cluster.yml
+k3d cluster create --config .k3d/cluster.yml
+
+# install the CRD and run the controller against your current kubeconfig
 make install
-```
+make run
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
-
-```sh
-make deploy IMG=<some-registry>/ec2-operator:tag
-```
-
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
-
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
-
-```sh
+# in another terminal, edit the sample and apply it
 kubectl apply -k config/samples/
+kubectl get ec2instances -o yaml
 ```
 
->**NOTE**: Ensure that the samples has default values to test it out.
-
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+### Deploy to a cluster
 
 ```sh
-kubectl delete -k config/samples/
+export IMG=<registry>/ec2-operator:tag
+make docker-build docker-push IMG=$IMG
+make deploy IMG=$IMG
 ```
 
-**Delete the APIs(CRDs) from the cluster:**
+When the operator runs in-cluster, the manager container needs `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` set (for example from a Secret).
+
+### Uninstall
 
 ```sh
+kubectl delete -k config/samples/   # terminates the EC2 instances
+make undeploy
 make uninstall
 ```
 
-**UnDeploy the controller from the cluster:**
+## Development
 
 ```sh
-make undeploy
+make manifests generate   # regenerate CRDs, RBAC, and deepcopy after API changes
+make lint-fix             # lint and auto-fix
+make test                 # unit tests (envtest)
+make test-e2e             # e2e tests (needs a dedicated kind cluster)
+make help                 # list all targets
 ```
 
-## Project Distribution
+### Project layout
 
-Following the options to release and provide this solution to the users.
-
-### By providing a bundle with all YAML files
-
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/ec2-operator:tag
 ```
-
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
-
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/ec2-operator/<tag or branch>/dist/install.yaml
+api/v1/                      Ec2instance CRD types
+cmd/main.go                  Manager entrypoint
+internal/controller/         Reconciler and AWS EC2 helpers
+config/                      Kustomize manifests (CRD, RBAC, manager, samples)
+test/                        E2E tests
 ```
-
-### By providing a Helm Chart
-
-1. Build the chart using the optional helm plugin
-
-```sh
-kubebuilder edit --plugins=helm/v2-alpha
-```
-
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
 
 ## License
 
-Copyright 2026.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+Licensed under the Apache License, Version 2.0. See <http://www.apache.org/licenses/LICENSE-2.0>.
