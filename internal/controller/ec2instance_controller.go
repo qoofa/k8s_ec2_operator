@@ -65,13 +65,13 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		_, err := deleteInstance(ctx, ec2Instance)
 		if err != nil {
 			l.Error(err, "Failed to delete EC2 instance")
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 
 		controllerutil.RemoveFinalizer(ec2Instance, ec2InstanceFinalizer)
 		if err = r.Update(ctx, ec2Instance); err != nil {
 			l.Error(err, "Failed to remove finalizer")
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
 	}
@@ -85,9 +85,7 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if err := r.Update(ctx, ec2Instance); err != nil {
 		l.Error(err, "Failed to add finalizer")
 
-		return ctrl.Result{
-			Requeue: true,
-		}, err
+		return ctrl.Result{}, err
 	}
 	l.Info("Added finalizer", "finalizer", ec2InstanceFinalizer)
 
