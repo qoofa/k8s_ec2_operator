@@ -36,6 +36,8 @@ type Ec2instanceReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+const ec2InstanceFinalizer = "ec2instance.compute.minhaj.blog"
+
 // +kubebuilder:rbac:groups=compute.minhaj.blog,resources=ec2instances,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=compute.minhaj.blog,resources=ec2instances/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=compute.minhaj.blog,resources=ec2instances/finalizers,verbs=update
@@ -52,13 +54,13 @@ type Ec2instanceReconciler struct {
 func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := logf.FromContext(ctx)
 
-	l.Info("=== RECONCILE LOOP STARTED ===", "namespace", req.Namespace, "name", req.Name)
+	l.Info("Started reconciliation", "namespace", req.Namespace, "name", req.Name)
 
 	ec2Instance := &computev1.Ec2instance{}
 
 	if err := r.Get(ctx, req.NamespacedName, ec2Instance); err != nil {
 		if errors.IsNotFound(err) {
-			l.Info("Instance Deleted. No need to reconcile")
+			l.Info("Ec2instance not found, skipping reconciliation")
 
 			return ctrl.Result{}, nil
 		}
@@ -66,14 +68,14 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	if !ec2Instance.DeletionTimestamp.IsZero() {
-		l.Info("DeletionTimestamp found, intiating deletion")
+		l.Info("Deleting EC2 instance", "instanceId", ec2Instance.Status.InstanceID)
 		_, err := deleteInstance(ctx, ec2Instance)
 		if err != nil {
 			l.Error(err, "Failed to delete EC2 instance")
 			return ctrl.Result{Requeue: true}, err
 		}
 
-		controllerutil.RemoveFinalizer(ec2Instance, "ec2instance.compute.minhaj.blog")
+		controllerutil.RemoveFinalizer(ec2Instance, ec2InstanceFinalizer)
 		if err = r.Update(ctx, ec2Instance); err != nil {
 			l.Error(err, "Failed to remove finalizer")
 			return ctrl.Result{Requeue: true}, err
@@ -82,14 +84,11 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	if ec2Instance.Status.InstanceID != "" {
-		l.Info("=== Requested Instace exists already so skipping ", "instanceId", ec2Instance.Status.InstanceID)
+		l.Info("EC2 instance already exists, skipping creation", "instanceId", ec2Instance.Status.InstanceID)
 		return ctrl.Result{}, nil
 	}
 
-	l.Info("Creating new instance")
-
-	l.Info("=== Adding Finalizer ===")
-	ec2Instance.Finalizers = append(ec2Instance.Finalizers, "ec2instance.compute.minhaj.blog")
+	controllerutil.AddFinalizer(ec2Instance, ec2InstanceFinalizer)
 	if err := r.Update(ctx, ec2Instance); err != nil {
 		l.Error(err, "Failed to add finalizer")
 
@@ -97,9 +96,7 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			Requeue: true,
 		}, err
 	}
-	l.Info("=== Added Finalizer ===")
-
-	l.Info("=== Creating new Instance in Reconciler ===")
+	l.Info("Added finalizer", "finalizer", ec2InstanceFinalizer)
 
 	newInstance, err := createEc2Instance(ec2Instance)
 	if err != nil {
@@ -107,9 +104,7 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	l.Info("=== updating status , would cause reconciler to be ran again ===",
-		"instanceId", newInstance.InstanceID,
-		"state", newInstance.State)
+	l.Info("Created EC2 instance", "instanceId", newInstance.InstanceID, "state", newInstance.State)
 
 	ec2Instance.Status.InstanceID = newInstance.InstanceID
 	ec2Instance.Status.State = newInstance.State
@@ -123,7 +118,7 @@ func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		l.Error(err, "Failed to update status")
 		return ctrl.Result{}, err
 	}
-	l.Info("=== Status Updated - Reconsiler would be retriggered ===")
+	l.Info("Updated Ec2instance status", "instanceId", newInstance.InstanceID)
 
 	return ctrl.Result{
 		RequeueAfter: time.Second * 1,

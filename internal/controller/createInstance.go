@@ -15,14 +15,13 @@ import (
 func createEc2Instance(data *computev1.Ec2instance) (createdInstanceInfo *computev1.CreatedInstanceInfo, err error) {
 	l := log.Log.WithName("CreateEc2Instance")
 
-	l.Info("=== Starting Ec2 Creation ===",
+	l.Info("Creating EC2 instance",
 		"amiId", data.Spec.AMIId,
 		"instanceType", data.Spec.InstanceType,
 		"region", data.Spec.Region)
 
 	client := awsClient(data.Spec.Region)
 
-	// Create paylod for run instance
 	runInput := &ec2.RunInstancesInput{
 		ImageId:      aws.String(data.Spec.AMIId),
 		InstanceType: ec2types.InstanceType(data.Spec.InstanceType),
@@ -32,22 +31,19 @@ func createEc2Instance(data *computev1.Ec2instance) (createdInstanceInfo *comput
 		MaxCount:     aws.Int32(1),
 	}
 
-	l.Info("=== Calling Aws run instance api ===")
 	result, err := client.RunInstances(context.TODO(), runInput)
 	if err != nil {
-		l.Error(err, "Failed to create EC2 instance")
+		l.Error(err, "Failed to run EC2 instance")
 		return nil, fmt.Errorf("failed to create ec2 instance %w", err)
 	}
 
 	if len(result.Instances) == 0 {
-		l.Error(nil, "no instance returned by RunInstance api")
+		l.Error(nil, "RunInstances returned no instance")
 		return nil, fmt.Errorf("no instance returned by RunInstance api")
 	}
 
 	inst := result.Instances[0]
-	l.Info("=== EC2 INSTANCE CREATED SUCCESSFULLY ===", "instanceID", *inst.InstanceId)
-
-	l.Info("=== WAITING FOR INSTANCE TO BE RUNNING ===")
+	l.Info("Launched EC2 instance, waiting for running state", "instanceId", *inst.InstanceId)
 
 	runWaiter := ec2.NewInstanceRunningWaiter(client)
 	maxWaitTime := 3 * time.Minute
@@ -62,7 +58,6 @@ func createEc2Instance(data *computev1.Ec2instance) (createdInstanceInfo *comput
 		return nil, fmt.Errorf("failed to wait for instance to be running: %w", err)
 	}
 
-	l.Info("=== Calling Aws describe to get running instance details ===")
 	describeResult, err := client.DescribeInstances(context.TODO(), describeInput)
 	if err != nil {
 		l.Error(err, "Failed to describe EC2 instance")
@@ -89,8 +84,8 @@ func createEc2Instance(data *computev1.Ec2instance) (createdInstanceInfo *comput
 		PrivateDNS: derefString(instance.PrivateDnsName),
 	}
 
-	l.Info("=== EC2 INSTANCE CREATION COMPLETED ===",
-		"instanceID", createdInstanceInfo.InstanceID,
+	l.Info("EC2 instance is running",
+		"instanceId", createdInstanceInfo.InstanceID,
 		"state", createdInstanceInfo.State,
 		"publicIP", createdInstanceInfo.PublicIP)
 

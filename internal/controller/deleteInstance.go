@@ -14,7 +14,7 @@ func deleteInstance(ctx context.Context, ec2Instance *computev1.Ec2instance) (bo
 
 	instanceId := ec2Instance.Status.InstanceID
 
-	l.Info("Deleting Instance : ", "instance Id", instanceId)
+	l.Info("Terminating EC2 instance", "instanceId", instanceId)
 
 	client := awsClient(ec2Instance.Spec.Region)
 
@@ -22,11 +22,11 @@ func deleteInstance(ctx context.Context, ec2Instance *computev1.Ec2instance) (bo
 		InstanceIds: []string{instanceId},
 	})
 	if err != nil {
-		l.Error(err, "failed to terminate ec2 instance")
+		l.Error(err, "Failed to terminate EC2 instance", "instanceId", instanceId)
 		return false, err
 	}
 
-	l.Info("Instance termination initiated",
+	l.Info("Initiated EC2 instance termination",
 		"instanceId", instanceId,
 		"currentState", terminateResult.TerminatingInstances[0].CurrentState.Name)
 
@@ -37,17 +37,17 @@ func deleteInstance(ctx context.Context, ec2Instance *computev1.Ec2instance) (bo
 		InstanceIds: []string{instanceId},
 	}
 
-	l.Info("Waiting for instance deletion to be completed",
+	l.Info("Waiting for EC2 instance termination",
 		"instanceId", instanceId,
 		"maxWaitTime", maxWaitTime)
 
 	err = waiter.Wait(ctx, waitPayload, maxWaitTime)
 	if err != nil {
-		l.Error(err, "failed wihle waiting for instance termination",
+		l.Error(err, "Failed while waiting for EC2 instance termination",
 			"instanceId", instanceId)
 		return false, err
 	}
 
-	l.Info("Ec2 instance successfully terminated", "instanceId", instanceId)
+	l.Info("Terminated EC2 instance", "instanceId", instanceId)
 	return true, nil
 }
