@@ -64,16 +64,6 @@ func createEc2Instance(data *computev1.Ec2instance) (createdInstanceInfo *comput
 		return nil, fmt.Errorf("failed to describe EC2 instance: %w", err)
 	}
 
-	fmt.Println("Describe result", "public ip", *describeResult.Reservations[0].Instances[0].PublicDnsName, "state", describeResult.Reservations[0].Instances[0].State.Name)
-
-	fmt.Printf("Private IP of the instance: %v", derefString(inst.PrivateIpAddress))
-	fmt.Printf("State of the instance: %v", describeResult.Reservations[0].Instances[0].State.Name)
-	fmt.Printf("Private DNS of the instance: %v", derefString(inst.PrivateDnsName))
-	fmt.Printf("Instance ID of the instance: %v", derefString(inst.InstanceId))
-	fmt.Println("Instance Type of the instance: ", inst.InstanceType)
-	fmt.Printf("Image ID of the instance: %v", derefString(inst.ImageId))
-	fmt.Printf("Key Name of the instance: %v", derefString(inst.KeyName))
-
 	instance := describeResult.Reservations[0].Instances[0]
 	createdInstanceInfo = &computev1.CreatedInstanceInfo{
 		InstanceID: *inst.InstanceId,
