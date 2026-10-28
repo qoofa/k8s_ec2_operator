@@ -42,15 +42,8 @@ const ec2InstanceFinalizer = "ec2instance.compute.minhaj.blog"
 // +kubebuilder:rbac:groups=compute.minhaj.blog,resources=ec2instances/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=compute.minhaj.blog,resources=ec2instances/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Ec2instance object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.25.0/pkg/reconcile
+// Reconcile launches an EC2 instance for each new Ec2instance, records its
+// details in status, and terminates it when the resource is deleted.
 func (r *Ec2instanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := logf.FromContext(ctx)
 
